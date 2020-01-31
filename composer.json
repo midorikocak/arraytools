@@ -1,7 +1,7 @@
 {
     "name": "midorikocak/arraytools",
     "type": "library",
-    "description": "Handy array tools to creating and updating objects from arrays and converting objects to arrays and validating them.\n",
+    "description": "Handy array tools to creating and updating objects from arrays and converting objects to arrays and validating them.",
     "keywords": [
         "midorikocak",
         "array",
