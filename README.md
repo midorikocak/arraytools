@@ -124,6 +124,7 @@ Simply calling `toArray()` method from your object will return an array with you
     
 ```php
 $userData = [
+    'id' => '1',
     'username' => 'midorikocak',
     'password' => '24738956349lhksbvlhf',
     'email' => 'mtkocak@gmail.com',
@@ -146,6 +147,7 @@ Will output to:
 ``` 
 Array
 (
+    [id] => 1
     [username] => midorikocak
     [password] => 24738956349lhksbvlhf
     [email] => mtkocak@gmail.com
