@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace midorikocak\nanodb;
+namespace midorikocak\arraytools;
 
 use PHPUnit\Framework\TestCase;
 

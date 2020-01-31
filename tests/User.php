@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
-namespace midorikocak\nanodb;
+namespace midorikocak\arraytools;
 
-class User
+class User implements ArrayConvertableInterface, ArrayUpdateableInterface
 {
+    use ArrayConvertableTrait;
+    use ArrayUpdateableTrait;
+
     private ?string $id;
     private string $username;
     private string $email;

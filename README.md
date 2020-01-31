@@ -1,5 +1,4 @@
-![nano API](nano.png)
-# Nano DB
+# Array Tools
 
 [![Latest Version on Packagist][ico-version]][link-packagist]
 [![Software License][ico-license]](LICENSE.md)
@@ -8,11 +7,7 @@
 [![Quality Score][ico-code-quality]][link-code-quality]
 [![Total Downloads][ico-downloads]][link-downloads]
 
-
-Nano DB is a tiny php library that allows you to define easily usable repositories.
-
-There are 3 handy classes and 1 example in this library.
-Let's start with basics:
+Handy array tools to creating and updating objects from arrays, converting objects to arrays and validating them.
 
 ## Requirements
 
@@ -23,145 +18,28 @@ Strictly requires PHP 7.4.
 Via Composer
 
 ``` bash
-$ composer require midorikocak/nanodb
+$ composer require midorikocak/arraytools
 ```
 
 ## Usage 
 
-### Database
+### Object and Array Conversion
 
-To use database library, simple inject it with pdo.
+Let's say you have a plain data object like this:
     
 ```php
-    use midorikocak\nanodb\Database;
 
-    $pdo = new PDO('sqlite::memory:');
-    $db = new Database($pdo);
-``` 
-
-Operations are chained.
-
-```php
-    $db->insert($tableName, $data)->execute();
-
-    $lastInsertId = $db->lastInsertId();
-    $insertedItem = $db->select($tableName)->where('id', $lastInsertId)->fetch();
-```
-
-
-### Select
-
-If found, returns the data you need. If nothing found, empty array is returned.
-
-```php
-    print_r($db->select($tableName)->where('id', $id)->fetch());
-``` 
-
-Example output:
-
-```
-Array
-(
-    [id] => 1
-    [username] => username
-    [email] => email@email.com
-    [password] => 123456789
-)
-``` 
-
-### Insert
-
-Insert using an array of data. Validation is your responsibility.
-
-```php
-    $db->select($tableName)->insert($tableName, $data)->executre();
-``` 
-
-### Update
-
-Insert using an array of data. Again validation is your responsibility. If id does not exist, throws exception.
-
-```php
-   $db->update($tableName, $data)->update($tableName, $data)->where('id', $id)->execute();
-``` 
-
-### Delete
-
-Returns affected rows. If id does not exist, throws exception.
-
-```php
-    $db->delete($tableName)->delete('id', $id)->execute();
-``` 
-
-## CrudInterface
-
-The crud interface is the interface of repositories.
-
-```php
 <?php
 
 declare(strict_types=1);
 
-namespace midorikocak\nanodb;
+namespace midorikocak\arraytools;
 
-interface CrudInterface
+class User implements ArrayConvertableInterface, ArrayUpdateableInterface
 {
-    public function read(string $id);
+    use ArrayConvertableTrait;
+    use ArrayUpdateableTrait;
 
-    public function readAll(array $constraints = [], array $columns = []): array;
-
-    public function save($item);
-
-    public function remove($data): int;
-}
-
-```
-
-If you want to use arrays to interact with your database, you can use the array repository.
-
-```php
-use midorikocak\nanodb\ArrayRepository;
-
-
-$tableName = 'users';
-$schema = [
-    'username'=>'string',
-    'password'=>'string',
-    'email'=>'email'
-];
-
-
-$repository = new ArrayRepository($tableName, $this->db, $schema);
-
-```
-
-Here `$schema` array is a simple optional array for Array validator, checked on every input with data. You can override it by extending `ArrayValidator` class.
-
-```php
-use midorikocak\nanodb\ArrayRepository;
-
-
-$tableName = 'users';
-
-$customValidator = new Validator();
-
-$repository = new ArrayRepository($tableName, $this->db, null , $customValidator);
-
-```
-
-Validators can implement `ValidableInterface` and `KeyValueValidableInterface`. You can find details in the source.
-
-### Class Repositories
-
-Let's say you have a simple user class.
-
-```php
-<?php
-
-declare(strict_types=1);
-
-class User
-{
     private ?string $id;
     private string $username;
     private string $email;
@@ -185,158 +63,219 @@ class User
         $this->id = $id;
     }
 
-    public function getUsername(): string
-    {
-        return $this->username;
-    }
+    // Getters and setters
+``` 
 
-    public function setUsername(string $username)
-    {
-        $this->username = $username;
-    }
+In order to convert this object to an array you should implement methods like `toArray` and  `fromArray` like this.
 
-    public function getEmail(): string
-    {
-        return $this->email;
-    }
-
-    public function setEmail(string $email)
-    {
-        $this->email = $email;
-    }
-
-    public function getPassword(): string
-    {
-        return $this->password;
-    }
-
-    public function setPassword(string $password)
-    {
-        $this->password = $password;
-    }
-}
+```php
+        public function toArray(): array
+        {
+            $toReturn = [
+                'username' => $this->getUsername(),
+                'email' => $this->getEmail(),
+                'password' => $this->getPassword(),
+            ];
+    
+            if ($this->getId()) {
+                $toReturn['id'] = $this->getId();
+            }
+    
+            return $toReturn;
+        }
+    
+        public static function fromArray($array): User
+        {
+            $id = $array['id'] ?? null;
+            $username = $array['username'];
+            $email = $array['email'];
+            $password = $array['password'];
+    
+            return new User($id, $username, $email, $password);
+        }
 ```
 
-You can create a `Users`repository, by implementing the `CrudInterface`.
+This would make may problems in case of change and resposibility. Instead you can use `ArrayConvertableTrait` in your data object implemetation.
 
+    
 ```php
 <?php
 
 declare(strict_types=1);
 
-namespace midorikocak\nanodb;
+namespace midorikocak\arraytools;
 
-use Exception;
-
-use function array_map;
-use function key;
-use function reset;
-
-class Users implements CrudInterface
+class User implements ArrayConvertableInterface
 {
-    private DatabaseInterface $db;
+    use ArrayConvertableTrait;
 
-    public function __construct(DatabaseInterface $db)
-    {
-        $this->db = $db;
-    }
+    private ?string $id;
+    private string $username;
+    private string $email;
+    private string $password;
 
-    /**
-     * @return User
-    */
-    public function read(string $id)
-    {
-        $data = $this->db->select('users')->where('id', $id)->fetch();
-        if (!$data) {
-            throw new Exception('not found');
-        }
-        return self::fromArray($data);
-    }
+    // rest
+``` 
 
-    public function readAll(array $constraints = [], array $columns = ['*']): array
-    {
-        $db = $this->db->select('users', $columns);
+Simply calling `toArray()` method from your object will return an array with your constructor params and their names as array keys. 
 
-        if (!empty($constraints)) {
-            $value = reset($constraints);
-            $key = key($constraints);
-            $db->where($key, $value);
+***Note:*** Trait expects that implemented object has getters.
 
-            unset($constraints[key($constraints)]);
+    
+```php
+$userData = [
+    'username' => 'midorikocak',
+    'password' => '24738956349lhksbvlhf',
+    'email' => 'mtkocak@gmail.com',
+];
 
-            foreach ($constraints as $key => $value) {
-                $db->and($key, $value);
-            }
-        }
 
-        $db->execute();
-        return array_map(fn($data) => self::fromArray($data), $db->fetchAll());
-    }
+$user = new User(
+    $userData['id'] ?? null,
+    $userData['username'],
+    $userData['email'],
+    $userData['password']
+);
 
-    /**
-     * @param User $user
-     * @return User
-    */
-    public function save($user)
-    {
-        if ($user->getId()) {
-            $id = $user->getId();
-            $userData = self::toArray($user);
-            unset($userData['id']);
-            $this->db->update('users', $userData)->where('id', $id)->execute();
-            return $user;
-        }
+$userArray = $user->toArray();
+print_r($userArray);
+``` 
 
-        $this->db->insert('users', self::toArray($user))->execute();
+Will output to:
 
-        $lastInsertId = $this->db->lastInsertId();
-        $user->setId($lastInsertId);
-        return $user;
-    }
+``` 
+Array
+(
+    [username] => midorikocak
+    [password] => 24738956349lhksbvlhf
+    [email] => mtkocak@gmail.com
+)
 
-    /**
-     * @param User $user
-     */
-    public function remove($user): int
-    {
-        $id = $user->getId();
-        $this->db->delete('users')->where('id', $id)->execute();
-        return $this->db->rowCount();
-    }
+``` 
 
-    /**
-     * @param User $user
-     * @return User
-    */
-    public static function fromArray(array $array): User
-    {
-        if (!isset($array['id'])) {
-            $array['id'] = null;
-        }
-        return new User($array['id'], $array['username'], $array['email'], $array['password']);
-    }
+#### fromArray
 
-    /**
-     * @param User $user
-     * @return array
-    */
-    public static function toArray(User $user): array
-    {
-        $toReturn = [
-            'username' => $user->getUsername(),
-            'email' => $user->getEmail(),
-            'password' => $user->getPassword(),
-        ];
+`ArrayConvertableTrait` also adds `fromArray` functionality into your object. It expects that the array has same keys with constructor parameters.
+    
+```php
 
-        if ($user->getId()) {
-            $toReturn['id'] = $user->getId();
-        }
+$userData = [
+    'username' => 'midorikocak',
+    'password' => '24738956349lhksbvlhf',
+    'email' => 'mtkocak@gmail.com',
+];
+        
+$user = User::fromArray($userData);
+``` 
 
-        return $toReturn;
-    }
-}
+### Object update using array data
 
+If you use `ArrayUpdateableTrait` you can use  `setFromArray()` method into your object. It will update object instance with array data.
+
+***Note:*** It expects that the array has same keys with setters.
+    
+```php
+
+$userData = [
+    'id' => '2',
+    'username' => 'update',
+    'password' => 'updatedpw',
+    'email' => 'updated@email.com',
+];
+        
+$user->setFromArray($userData);
+``` 
+
+### Array Validation
+
+You can use `ArrayValidator` class to validate your arrays according to the rules you define. 
+    
+```php
+use midorikocak\arraytools\ArrayValidator;
+
+$arrayValidator = new ArrayValidator();
 ```
+
+#### Array should have a key
+
+    
+```php
+use midorikocak\arraytools\ArrayValidator;
+
+$toValidate = [
+    'id'=>'1',
+    'username'=>'uname',
+    'password'=>''
+];
+
+$arrayValidator = new ArrayValidator();
+$arrayValidator->hasKey('id');
+echo $arrayValidator->validate($toValidate); // true
+
+$arrayValidator->hasKey('hasan');
+echo $arrayValidator->validate($toValidate); // false
+```
+
+#### Array should contain keys
+
+    
+```php
+$arrayValidator->hasKeys('id', 'username');
+echo $arrayValidator->validate($toValidate); // true
+```
+
+#### Array should exactly have keys
+
+    
+```php
+$arrayValidator->keys('id', 'username', 'password');
+echo $arrayValidator->validate($toValidate); // true
+```
+
+#### Array should defined keys shouldn't be empty
+    
+```php
+$arrayValidator->notEmpty('password');
+echo $arrayValidator->validate($toValidate); // false
+```
+
+#### Rules are chainable
+    
+```php
+echo $arrayValidator
+        ->keys('id', 'username', 'password')
+        ->notEmpty('password')
+        ->hasKeys('id', 'username')
+        ->validate($toValidate); // false
+```
+
+#### Array can conform the defined schema
+
+A simple schema structure can be used for checking array values. Schema values can be one of  `boolean`, `domain`, `int`, `email`, `mac`, `float`, `regexp` and `string`.
+    
+```php
+$schema = [
+    'username' => 'string',
+    'password' => 'string',
+    'email' => 'email',
+];
+
+$arrayValidator->schema($schema); // true
+```
+
+#### Array can conform user supplied function
+
+A function that accepts an array and returns bool value can be appended to last validation.
+
+```php
+echo $arrayValidator->validate($toValidate, function($array){
+    return array_key_exists('key', $array);
+}); // false
+```
+
+## Custom Validators
+
+To create custom validators, you may extend `AbstractValidator` class. Please check the source for details.
 
 ## Motivation and Warning
 
@@ -369,17 +308,17 @@ If you discover any security related issues, please email mtkocak@gmail.com inst
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
 
-[ico-version]: https://img.shields.io/packagist/v/midorikocak/nanodb.svg?style=flat-square
+[ico-version]: https://img.shields.io/packagist/v/midorikocak/arraytools.svg?style=flat-square
 [ico-license]: https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square
-[ico-travis]: https://img.shields.io/travis/midorikocak/nanodb/master.svg?style=flat-square
-[ico-scrutinizer]: https://img.shields.io/scrutinizer/coverage/g/midorikocak/nanodb.svg?style=flat-square
-[ico-code-quality]: https://img.shields.io/scrutinizer/g/midorikocak/nanodb.svg?style=flat-square
-[ico-downloads]: https://img.shields.io/packagist/dt/midorikocak/nanodb.svg?style=flat-square
+[ico-travis]: https://img.shields.io/travis/midorikocak/arraytools/master.svg?style=flat-square
+[ico-scrutinizer]: https://img.shields.io/scrutinizer/coverage/g/midorikocak/arraytools.svg?style=flat-square
+[ico-code-quality]: https://img.shields.io/scrutinizer/g/midorikocak/arraytools.svg?style=flat-square
+[ico-downloads]: https://img.shields.io/packagist/dt/midorikocak/arraytools.svg?style=flat-square
 
-[link-packagist]: https://packagist.org/packages/midorikocak/nanodb
-[link-travis]: https://travis-ci.org/midorikocak/nanodb
-[link-scrutinizer]: https://scrutinizer-ci.com/g/midorikocak/nanodb/code-structure
-[link-code-quality]: https://scrutinizer-ci.com/g/midorikocak/nanodb
-[link-downloads]: https://packagist.org/packages/midorikocak/nanodb
+[link-packagist]: https://packagist.org/packages/midorikocak/arraytools
+[link-travis]: https://travis-ci.org/midorikocak/arraytools
+[link-scrutinizer]: https://scrutinizer-ci.com/g/midorikocak/arraytools/code-structure
+[link-code-quality]: https://scrutinizer-ci.com/g/midorikocak/arraytools
+[link-downloads]: https://packagist.org/packages/midorikocak/arraytools
 [link-author]: https://github.com/midorikocak
 [link-contributors]: ../../contributors

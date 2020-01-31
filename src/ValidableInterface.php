@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace midorikocak\nanodb;
+namespace midorikocak\arraytools;
 
 interface ValidableInterface
 {
