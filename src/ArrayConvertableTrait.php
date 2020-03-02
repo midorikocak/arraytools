@@ -13,9 +13,7 @@ use function is_object;
 use function lcfirst;
 use function preg_match;
 use function preg_replace;
-use function str_replace;
 use function strtolower;
-use function ucwords;
 
 trait ArrayConvertableTrait
 {
@@ -64,7 +62,7 @@ trait ArrayConvertableTrait
 
         foreach ($params as $param) {
             $paramName = $param->getName();
-            $constructorArray[] = $data[self::makeCamel($paramName)] ?? null;
+            $constructorArray[] = $data[self::makeKebab($paramName)] ?? null;
         }
 
         return $reflection->newInstanceArgs($constructorArray);
@@ -73,16 +71,5 @@ trait ArrayConvertableTrait
     private static function makeKebab($camel): string
     {
         return strtolower(preg_replace('%([A-Z])([a-z])%', '_\1\2', $camel));
-    }
-
-    private static function makeCamel($kebab, $capitalizeFirstCharacter = false)
-    {
-        $str = str_replace('-', '', ucwords($kebab, '-'));
-
-        if (!$capitalizeFirstCharacter) {
-            $str = lcfirst($str);
-        }
-
-        return $str;
     }
 }
