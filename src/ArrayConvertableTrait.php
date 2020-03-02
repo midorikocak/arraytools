@@ -10,6 +10,10 @@ use ReflectionMethod;
 
 use function lcfirst;
 use function preg_match;
+use function preg_replace;
+use function str_replace;
+use function strtolower;
+use function ucwords;
 
 trait ArrayConvertableTrait
 {
@@ -29,7 +33,7 @@ trait ArrayConvertableTrait
             $isGetter = preg_match('~get([A-Z].+)~', $methodName, $matches);
             if ($isGetter) {
                 $varName = lcfirst($matches[1]);
-                $toReturn[$varName] = $this->$methodName();
+                $toReturn[self::makeKebab($varName)] = $this->$methodName();
             }
         }
         return $toReturn;
@@ -50,9 +54,25 @@ trait ArrayConvertableTrait
 
         foreach ($params as $param) {
             $paramName = $param->getName();
-            $constructorArray[] = $data[$paramName] ?? null;
+            $constructorArray[] = $data[self::makeCamel($paramName)] ?? null;
         }
 
         return $reflection->newInstanceArgs($constructorArray);
+    }
+
+    private static function makeKebab($camel): string
+    {
+        return strtolower(preg_replace('%([A-Z])([a-z])%', '_\1\2', $camel));
+    }
+
+    private static function makeCamel($kebab, $capitalizeFirstCharacter = false)
+    {
+        $str = str_replace('-', '', ucwords($kebab, '-'));
+
+        if (!$capitalizeFirstCharacter) {
+            $str = lcfirst($str);
+        }
+
+        return $str;
     }
 }

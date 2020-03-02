@@ -28,3 +28,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 - Nothing
+
+## [1.0.1] - 2020-03-02
+
+### Added
+- Nothing
+
+### Deprecated
+- Nothing
+
+### Fixed
+- Arrays have kebab keys
+- Objects have camel keys
+
+### Removed
+- Nothing
+
+### Security
+- Nothing
