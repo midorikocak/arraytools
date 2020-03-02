@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace midorikocak\arraytools;
 
+use function str_replace;
 use function ucfirst;
+use function ucwords;
 
 trait ArrayUpdateableTrait
 {
@@ -14,7 +16,8 @@ trait ArrayUpdateableTrait
     public function setFromArray(array $data)
     {
         foreach ($data as $key => $value) {
-            $methodName = 'set' . ucfirst($key);
+            $str = str_replace('_', '', ucwords($key, '_'));
+            $methodName = 'set' . ucfirst($str);
             $this->$methodName($data[$key]);
         }
     }
