@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Nothing
 
-## [1.0.1] - 2020-03-02
+## [1.0.2] - 2020-03-02
 
 ### Added
 - Nothing
@@ -39,7 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Arrays have kebab keys
-- Objects have camel keys
 
 ### Removed
 - Nothing
