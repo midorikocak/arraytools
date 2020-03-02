@@ -8,6 +8,8 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
 
+use function is_array;
+use function is_object;
 use function lcfirst;
 use function preg_match;
 use function preg_replace;
@@ -33,7 +35,15 @@ trait ArrayConvertableTrait
             $isGetter = preg_match('~get([A-Z].+)~', $methodName, $matches);
             if ($isGetter) {
                 $varName = lcfirst($matches[1]);
-                $toReturn[self::makeKebab($varName)] = $this->$methodName();
+                $varValue = $this->$methodName();
+                if (is_array($varValue)) {
+                    foreach ($varValue as &$value) {
+                        if (is_object($value)) {
+                            $value = $value->toArray();
+                        }
+                    }
+                }
+                $toReturn[self::makeKebab($varName)] = $varValue;
             }
         }
         return $toReturn;
